@@ -513,62 +513,13 @@ extension GooseAppModel {
   }
 
   func applyPacketUIStateSnapshot(_ snapshot: PacketUIStateSnapshot) {
-    if let status = snapshot.lastParsedFrameSummary {
-      lastParsedFrameSummary = status
-    }
-    if let status = snapshot.movementPacketStatus {
-      movementPacketStatus = status
-    }
-    if let status = snapshot.whoopEventStatus {
-      latestWhoopEventStatus = status
-    }
-    if let status = snapshot.skinTemperatureCandidateStatus {
-      latestSkinTemperatureCandidateStatus = status
-    }
-    if let status = snapshot.whoopDataPacketStatus {
-      latestWhoopDataPacketStatus = status
-    }
-    if let status = snapshot.historyTemperatureCandidateStatus {
-      latestHistoryTemperatureCandidateStatus = status
-    }
-    if let status = snapshot.respiratoryRateCandidateStatus {
-      latestRespiratoryRateCandidateStatus = status
-    }
-    if let status = snapshot.pulseInformationPacketStatus {
-      latestPulseInformationPacketStatus = status
-    }
-    if let status = snapshot.opticalPacketStatus {
-      latestOpticalPacketStatus = status
-    }
-    if let status = snapshot.rawResearchPacketStatus {
-      latestRawResearchPacketStatus = status
-    }
-    if let status = snapshot.realtimeStatusPacketStatus {
-      latestRealtimeStatusPacketStatus = status
-    }
-    if let status = snapshot.performancePipelineStatus {
-      performancePipelineStatus = status
-    }
-    if !snapshot.deviceSignalPoints.isEmpty {
-      for point in snapshot.deviceSignalPoints {
-        recentDeviceSignalPoints.insert(point, at: 0)
-      }
-      if recentDeviceSignalPoints.count > Self.maxRecentDeviceSignalPoints {
-        recentDeviceSignalPoints.removeLast(recentDeviceSignalPoints.count - Self.maxRecentDeviceSignalPoints)
-      }
-    }
-    if let summary = snapshot.liveDeviceDataSummary {
-      liveDeviceDataSummary = summary
-    }
+    packetMonitor.apply(
+      snapshot,
+      maxRecentDeviceSignalPoints: Self.maxRecentDeviceSignalPoints,
+      publishInterval: Self.packetUIStatePublishInterval
+    )
     if !snapshot.deviceSignalCountsByFamily.isEmpty {
       deviceSignalCountsByFamily = snapshot.deviceSignalCountsByFamily
-    }
-    if snapshot.coalescedStatusUpdateCount > 0 {
-      let summary = snapshot.coalescedStatusUpdateSummary ?? "unknown"
-      performancePipelineStatus = "ui coalesced \(snapshot.coalescedStatusUpdateCount) status update(s) before publish (\(summary); reason=publish_interval_\(Self.packetUIStatePublishInterval)s) | \(performancePipelineStatus)"
-    }
-    if snapshot.droppedDeviceSignalPointCount > 0 {
-      performancePipelineStatus = "ui signal preview dropped \(snapshot.droppedDeviceSignalPointCount) stale point(s) | \(performancePipelineStatus)"
     }
   }
 
@@ -628,13 +579,14 @@ extension GooseAppModel {
     _ timing: GooseRustBridgeTiming,
     frameCount: Int,
     queueDepth: Int,
-    queueHighWatermark: Int
+    queueHighWatermark: Int,
+    detail: String? = nil
   ) {
     let elapsedMS = Double(timing.methodElapsedMicroseconds) / 1_000
     let boundaryMS = Double(timing.boundaryMicroseconds) / 1_000
     let encodeMS = Double(timing.requestEncodeMicroseconds) / 1_000
     let decodeMS = Double(timing.responseDecodeMicroseconds) / 1_000
-    let status = String(
+    var status = String(
       format: "rust %@ %.1fms | bridge %.1fms e%.1f/d%.1f | frames %d | parseQ %d hwm %d",
       timing.method,
       elapsedMS,
@@ -645,6 +597,9 @@ extension GooseAppModel {
       queueDepth,
       queueHighWatermark
     )
+    if let detail, !detail.isEmpty {
+      status += " | \(detail)"
+    }
     publishPipelinePerformanceStatus(status)
 
     let now = Date()

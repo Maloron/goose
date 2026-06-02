@@ -36,6 +36,11 @@ extension GooseBLEClient {
     historicalSyncStatus = "syncing"
     historicalPacketCount = 0
     historicalPacketsReceivedThisSync = 0
+    lastHistoricalPacketCountPublishedAt = Date.distantPast
+    lastHistoricalSyncProgressCallbackAt = Date.distantPast
+    lastHistoricalSyncProgressCallbackStatus = ""
+    lastHistoricalSyncProgressCallbackDetail = ""
+    coalescedHistoricalSyncProgressCallbackCount = 0
     historyEndAckQueued = false
     historyEndAckSentThisBurst = false
     pendingHistoryEndAckPayload = nil

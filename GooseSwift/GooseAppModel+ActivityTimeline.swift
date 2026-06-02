@@ -183,6 +183,10 @@ extension GooseAppModel {
     let distanceMeters = doubleValue(metrics["distance"]?["value"])
     let averageHeartRate = doubleValue(metrics["average_hr"]?["value"]).map { Int($0.rounded()) }
 
+    guard Self.activityTimelineSessionIsDisplaySafe(session, metrics: Array(metrics.values)) else {
+      return nil
+    }
+
     return ActivityTimelineItem(
       id: sessionID,
       startedAt: Date(timeIntervalSince1970: Double(startMs) / 1000),
@@ -238,8 +242,19 @@ extension GooseAppModel {
     metricsBySession: [String: [[String: Any]]]
   ) -> ActivityTimelineRefreshResult {
     var skippedCounts: [String: Int] = [:]
-    let candidateCount = sessions.filter { ($0["sync_status"] as? String) == "candidate" }.count
-    let visibleSessions = sessions.filter { session in
+    let displaySafeSessions = sessions.filter { session in
+      guard let sessionID = session["session_id"] as? String else {
+        skippedCounts["missing_session_id", default: 0] += 1
+        return false
+      }
+      guard activityTimelineSessionIsDisplaySafe(session, metrics: metricsBySession[sessionID] ?? []) else {
+        skippedCounts["platform_import", default: 0] += 1
+        return false
+      }
+      return true
+    }
+    let candidateCount = displaySafeSessions.filter { ($0["sync_status"] as? String) == "candidate" }.count
+    let visibleSessions = displaySafeSessions.filter { session in
       guard let startMs = timelineActivityStartMilliseconds(from: session) else {
         skippedCounts["missing_start", default: 0] += 1
         return false
@@ -323,6 +338,16 @@ extension GooseAppModel {
     )
   }
 
+  nonisolated static func activityTimelineSessionIsDisplaySafe(
+    _ session: [String: Any],
+    metrics: [[String: Any]]
+  ) -> Bool {
+    if activityTimelineValueContainsPlatformSourceMarker(session) {
+      return false
+    }
+    return !metrics.contains { activityTimelineValueContainsPlatformSourceMarker($0) }
+  }
+
   nonisolated static func activityTimelineMetricsByName(
     sessionID: String,
     databasePath: String,
@@ -399,6 +424,61 @@ extension GooseAppModel {
     default:
       return nil
     }
+  }
+
+  nonisolated static func activityTimelineValueContainsPlatformSourceMarker(_ value: Any?) -> Bool {
+    guard let value else {
+      return false
+    }
+    if let text = value as? String {
+      if activityTimelineJSONStringContainsPlatformSourceMarker(text) {
+        return true
+      }
+      return activityTimelineTextContainsPlatformSourceMarker(text)
+    }
+    if let dictionary = value as? [String: Any] {
+      return dictionary.contains { element in
+        let key = element.key
+        let child = element.value
+        return activityTimelineTextContainsPlatformSourceMarker(key)
+          || activityTimelineValueContainsPlatformSourceMarker(child)
+      }
+    }
+    if let array = value as? [Any] {
+      return array.contains { activityTimelineValueContainsPlatformSourceMarker($0) }
+    }
+    return false
+  }
+
+  nonisolated static func activityTimelineJSONStringContainsPlatformSourceMarker(_ text: String) -> Bool {
+    guard let data = text.data(using: .utf8),
+          let value = try? JSONSerialization.jsonObject(with: data) else {
+      return false
+    }
+    return activityTimelineValueContainsPlatformSourceMarker(value)
+  }
+
+  nonisolated static func activityTimelineTextContainsPlatformSourceMarker(_ text: String) -> Bool {
+    let normalized = text
+      .lowercased()
+      .unicodeScalars
+      .map { CharacterSet.alphanumerics.contains($0) ? Character($0) : "_" }
+      .reduce(into: "") { result, character in
+        if character == "_" {
+          if result.last != "_" {
+            result.append(character)
+          }
+        } else {
+          result.append(character)
+        }
+      }
+      .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+    return normalized.contains("healthkit")
+      || normalized.contains("health_connect")
+      || normalized.contains("apple_health")
+      || normalized.contains("platform_import")
+      || normalized.contains("imported_platform")
+      || normalized.contains("hksample")
   }
 
   func nonEmpty(_ value: String?) -> String? {

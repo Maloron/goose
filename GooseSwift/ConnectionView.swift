@@ -11,6 +11,7 @@ struct ConnectionView: View {
 
 private struct ConnectionContentView: View {
   @EnvironmentObject private var model: GooseAppModel
+  @EnvironmentObject private var messageStore: GooseMessageStore
   @ObservedObject var ble: GooseBLEClient
 
   var body: some View {
@@ -93,7 +94,7 @@ private struct ConnectionContentView: View {
       }
 
       Section("Event Log") {
-        ForEach(ble.messages) { message in
+        ForEach(messageStore.messages) { message in
           VStack(alignment: .leading, spacing: 4) {
             HStack {
               Text(message.timestamp, style: .time)

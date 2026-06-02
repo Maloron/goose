@@ -24,7 +24,7 @@ extension GooseBLEClient {
       handleHistoricalCommandResponse(payload)
     case V5PacketType.historicalData, V5PacketType.historicalIMUDataStream:
       historicalPacketsReceivedThisSync += 1
-      historicalPacketCount = historicalPacketsReceivedThisSync
+      publishHistoricalPacketCountIfNeeded()
       scheduleHistoricalIdleCompletion(reason: "historical_data_idle")
       notifyHistoricalSyncProgress(
         status: "syncing",
@@ -43,6 +43,16 @@ extension GooseBLEClient {
     default:
       break
     }
+  }
+
+  func publishHistoricalPacketCountIfNeeded(force: Bool = false, at date: Date = Date()) {
+    guard force
+      || date.timeIntervalSince(lastHistoricalPacketCountPublishedAt) >= Self.historicalPacketCountPublishInterval else {
+      return
+    }
+
+    lastHistoricalPacketCountPublishedAt = date
+    historicalPacketCount = historicalPacketsReceivedThisSync
   }
 
   func handleAlarmValue(_ value: Data, characteristic: CBCharacteristic) {
@@ -601,6 +611,7 @@ extension GooseBLEClient {
     let rangeOnly = historicalRangePollOnly
     isHistoricalSyncing = false
     historicalRangePollOnly = false
+    publishHistoricalPacketCountIfNeeded(force: true, at: completedAt)
     historicalSyncStatus = "synced"
     lastHistoricalSyncCompletedAt = completedAt
     lastSyncAt = completedAt
@@ -634,6 +645,7 @@ extension GooseBLEClient {
     historicalDataResultAckEnabled = true
     isHistoricalSyncing = false
     historicalRangePollOnly = false
+    publishHistoricalPacketCountIfNeeded(force: true)
     historicalSyncStatus = "failed"
     let failure = GooseSyncFailure(title: "Sync Failed", message: message, occurredAt: Date())
     lastSyncFailure = failure
@@ -644,6 +656,37 @@ extension GooseBLEClient {
   }
 
   func notifyHistoricalSyncProgress(status: String, detail: String, terminal: Bool, failed: Bool) {
+    let capturedAt = Date()
+    let highVolumePacketProgress = !terminal
+      && !failed
+      && status == "syncing"
+      && detail.hasPrefix("Received historical packet ")
+    let statusChanged = status != lastHistoricalSyncProgressCallbackStatus
+      || (!highVolumePacketProgress && detail != lastHistoricalSyncProgressCallbackDetail)
+    let elapsed = capturedAt.timeIntervalSince(lastHistoricalSyncProgressCallbackAt)
+    let shouldPublish = terminal
+      || failed
+      || statusChanged
+      || elapsed >= Self.historicalProgressCallbackInterval
+    guard shouldPublish else {
+      coalescedHistoricalSyncProgressCallbackCount += 1
+      return
+    }
+
+    let coalescedCount = coalescedHistoricalSyncProgressCallbackCount
+    coalescedHistoricalSyncProgressCallbackCount = 0
+    lastHistoricalSyncProgressCallbackAt = capturedAt
+    lastHistoricalSyncProgressCallbackStatus = status
+    lastHistoricalSyncProgressCallbackDetail = detail
+    if coalescedCount > 0 {
+      record(
+        level: .debug,
+        source: "ble.sync",
+        title: "historical_sync.progress.coalesced",
+        body: "count=\(coalescedCount) reason=callback_interval_\(Self.historicalProgressCallbackInterval)s packets=\(historicalPacketsReceivedThisSync) status=\(status)"
+      )
+    }
+
     onHistoricalSyncProgress?(
       GooseHistoricalSyncProgress(
         status: status,
@@ -651,7 +694,7 @@ extension GooseBLEClient {
         packetCount: historicalPacketsReceivedThisSync,
         isTerminal: terminal,
         failed: failed,
-        capturedAt: Date()
+        capturedAt: capturedAt
       )
     )
   }

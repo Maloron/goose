@@ -23,12 +23,7 @@ extension GooseBLEClient {
       lastHeartRatePublishedBPM = bpm
       lastHeartRatePublishedSource = source
       lastHeartRatePublishedAt = date
-      DispatchQueue.main.async { [weak self] in
-        self?.liveHeartRateBPM = bpm
-        self?.liveHeartRateSource = source
-        self?.liveHeartRateUpdatedAt = date
-        self?.lastSyncAt = date
-      }
+      bleUIStateAggregator.publishLiveHeartRate(bpm: bpm, source: source, updatedAt: date)
     }
 
     let shouldLog = lastHeartRateLogAt.map { date.timeIntervalSince($0) >= 10 } ?? true
@@ -76,12 +71,12 @@ extension GooseBLEClient {
     let estimateSource = "\(source).low_quartile"
     lastRestingHeartRateEstimateBPM = estimate
     lastRestingHeartRateEstimatePublishedAt = date
-    DispatchQueue.main.async { [weak self] in
-      self?.restingHeartRateEstimateBPM = estimate
-      self?.restingHeartRateEstimateSampleCount = sampleCount
-      self?.restingHeartRateEstimateSource = estimateSource
-      self?.restingHeartRateEstimateUpdatedAt = date
-    }
+    bleUIStateAggregator.publishRestingHeartRate(
+      bpm: estimate,
+      sampleCount: sampleCount,
+      source: estimateSource,
+      updatedAt: date
+    )
     persistRestingHeartRateEstimate(
       bpm: estimate,
       sampleCount: sampleCount,
@@ -141,13 +136,13 @@ extension GooseBLEClient {
       let averageSource = "\(source).average"
       lastPublishedHRVRMSSD = averagedRMSSD
       lastHRVPublishedAt = date
-      DispatchQueue.main.async { [weak self] in
-        self?.liveHRVRMSSD = averagedRMSSD
-        self?.liveHRVRRIntervalCount = averagedRRIntervalCount
-        self?.liveHRVRMSSDSampleCount = sampleCount
-        self?.liveHRVSource = averageSource
-        self?.liveHRVUpdatedAt = date
-      }
+      bleUIStateAggregator.publishHRV(
+        rmssd: averagedRMSSD,
+        rrIntervalCount: averagedRRIntervalCount,
+        sampleCount: sampleCount,
+        source: averageSource,
+        updatedAt: date
+      )
       persistHRVSample(
         rmssd: averagedRMSSD,
         rrIntervalCount: averagedRRIntervalCount,
@@ -165,6 +160,31 @@ extension GooseBLEClient {
         title: "hrv.rmssd.average",
         body: "avg=\(String(format: "%.1f", averagedRMSSD)) ms chunk=\(String(format: "%.1f", chunkRMSSD)) ms samples=\(hrvRMSSDSamples.count) rr=\(averagedRRIntervalCount)"
       )
+    }
+  }
+
+  func applyBLEUIStateSnapshot(_ snapshot: BLEUIStateSnapshot) {
+    if let liveHeartRate = snapshot.liveHeartRate {
+      liveHeartRateBPM = liveHeartRate.bpm
+      liveHeartRateSource = liveHeartRate.source
+      liveHeartRateUpdatedAt = liveHeartRate.updatedAt
+    }
+    if let restingHeartRate = snapshot.restingHeartRate {
+      restingHeartRateEstimateBPM = restingHeartRate.bpm
+      restingHeartRateEstimateSampleCount = restingHeartRate.sampleCount
+      restingHeartRateEstimateSource = restingHeartRate.source
+      restingHeartRateEstimateUpdatedAt = restingHeartRate.updatedAt
+    }
+    if let hrv = snapshot.hrv {
+      liveHRVRMSSD = hrv.rmssd
+      liveHRVRRIntervalCount = hrv.rrIntervalCount
+      liveHRVRMSSDSampleCount = hrv.sampleCount
+      liveHRVSource = hrv.source
+      liveHRVUpdatedAt = hrv.updatedAt
+    }
+    if let snapshotLastSyncAt = snapshot.lastSyncAt,
+       lastSyncAt.map({ $0 < snapshotLastSyncAt }) ?? true {
+      lastSyncAt = snapshotLastSyncAt
     }
   }
 
@@ -201,44 +221,11 @@ extension GooseBLEClient {
   }
 
   func enqueueDisplayedMessage(_ message: GooseMessage) {
-    guard Thread.isMainThread else {
-      DispatchQueue.main.async { [weak self] in
-        self?.enqueueDisplayedMessage(message)
-      }
-      return
-    }
-
-    pendingDisplayedMessages.append(message)
-    guard displayedMessageFlushWorkItem == nil else {
-      return
-    }
-
-    let workItem = DispatchWorkItem { [weak self] in
-      self?.flushDisplayedMessages()
-    }
-    displayedMessageFlushWorkItem = workItem
-    DispatchQueue.main.asyncAfter(deadline: .now() + Self.displayedMessageFlushInterval, execute: workItem)
+    messageStore.enqueue(message)
   }
 
   func flushDisplayedMessages() {
-    guard Thread.isMainThread else {
-      DispatchQueue.main.async { [weak self] in
-        self?.flushDisplayedMessages()
-      }
-      return
-    }
-
-    displayedMessageFlushWorkItem?.cancel()
-    displayedMessageFlushWorkItem = nil
-    guard !pendingDisplayedMessages.isEmpty else {
-      return
-    }
-
-    messages.insert(contentsOf: pendingDisplayedMessages.reversed(), at: 0)
-    pendingDisplayedMessages.removeAll(keepingCapacity: true)
-    if messages.count > Self.maximumDisplayedMessages {
-      messages.removeLast(messages.count - Self.maximumDisplayedMessages)
-    }
+    messageStore.flush()
   }
 
   enum DiagnosticLogError: Error, CustomStringConvertible {

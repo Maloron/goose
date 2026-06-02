@@ -14,6 +14,8 @@ struct GooseSwiftApp: App {
     WindowGroup {
       RootView()
         .environmentObject(model)
+        .environmentObject(model.packetMonitor)
+        .environmentObject(model.ble.messageStore)
         .environmentObject(router)
         .onOpenURL { url in
           if model.handleDebugCommandDeepLink(url) {

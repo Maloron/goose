@@ -7,6 +7,42 @@ struct NotificationFrameParseResult {
   let errorDescription: String?
 }
 
+struct NotificationFrameBatchTiming {
+  let totalMicroseconds: Int
+  let parseMicroseconds: Int
+  let compactSummaryMicroseconds: Int
+  let resultSerializationMicroseconds: Int
+  let includeResult: Bool
+  let okCount: Int
+  let errorCount: Int
+
+  init?(raw: [String: Any]) {
+    guard let totalMicroseconds = NotificationFrameParser.intValue(raw["total_us"]) else {
+      return nil
+    }
+    self.totalMicroseconds = totalMicroseconds
+    parseMicroseconds = NotificationFrameParser.intValue(raw["parse_us"]) ?? 0
+    compactSummaryMicroseconds = NotificationFrameParser.intValue(raw["compact_summary_us"]) ?? 0
+    resultSerializationMicroseconds = NotificationFrameParser.intValue(raw["result_serialization_us"]) ?? 0
+    includeResult = NotificationFrameParser.boolValue(raw["include_result"]) ?? false
+    okCount = NotificationFrameParser.intValue(raw["ok_count"]) ?? 0
+    errorCount = NotificationFrameParser.intValue(raw["error_count"]) ?? 0
+  }
+
+  var statusSummary: String {
+    String(
+      format: "batch %.1fms parse %.1f compact %.1f serialize %.1f ok %d err %d full=%@",
+      Double(totalMicroseconds) / 1_000,
+      Double(parseMicroseconds) / 1_000,
+      Double(compactSummaryMicroseconds) / 1_000,
+      Double(resultSerializationMicroseconds) / 1_000,
+      okCount,
+      errorCount,
+      includeResult ? "yes" : "no"
+    )
+  }
+}
+
 struct NotificationFrameCompactSummary {
   struct Movement {
     let axisCount: Int
@@ -114,6 +150,7 @@ struct ParsedNotificationFrameDispatch {
   let skippedDiagnosticFrameCount: Int
   let skippedParseErrorCount: Int
   let bridgeTiming: GooseRustBridgeTiming?
+  let batchTiming: NotificationFrameBatchTiming?
 }
 
 struct NotificationParseContext {
@@ -192,9 +229,12 @@ final class NotificationFrameParser: @unchecked Sendable {
     }
   }
 
-  func parseBatch(frameHexes: [String], deviceType: String) -> ([NotificationFrameParseResult], GooseRustBridgeTiming?) {
+  func parseBatch(
+    frameHexes: [String],
+    deviceType: String
+  ) -> ([NotificationFrameParseResult], GooseRustBridgeTiming?, NotificationFrameBatchTiming?) {
     guard !frameHexes.isEmpty else {
-      return ([], nil)
+      return ([], nil, nil)
     }
 
     do {
@@ -206,6 +246,7 @@ final class NotificationFrameParser: @unchecked Sendable {
           "include_result": false,
         ]
       )
+      let batchTiming = (response["timing"] as? [String: Any]).flatMap(NotificationFrameBatchTiming.init(raw:))
       let rawResults = response["results"] as? [[String: Any]] ?? []
       var parsedResults = Array(
         repeating: NotificationFrameParseResult(parsed: nil, compact: nil, errorDescription: "missing parse result"),
@@ -226,12 +267,13 @@ final class NotificationFrameParser: @unchecked Sendable {
           parsedResults[index] = NotificationFrameParseResult(parsed: nil, compact: nil, errorDescription: error)
         }
       }
-      return (parsedResults, rust.lastTiming)
+      return (parsedResults, rust.lastTiming, batchTiming)
     } catch {
       let errorDescription = String(describing: error)
       return (
         frameHexes.map { _ in NotificationFrameParseResult(parsed: nil, compact: nil, errorDescription: errorDescription) },
-        rust.lastTiming
+        rust.lastTiming,
+        nil
       )
     }
   }

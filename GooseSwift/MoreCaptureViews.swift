@@ -55,6 +55,7 @@ struct MoreCommandGroup: Identifiable {
 
 struct MoreCaptureView: View {
   @EnvironmentObject private var model: GooseAppModel
+  @EnvironmentObject private var messageStore: GooseMessageStore
   @ObservedObject var store: MoreDataStore
 
   var body: some View {
@@ -204,10 +205,10 @@ struct MoreCaptureView: View {
       }
 
       Section("Recent Notifications And Events") {
-        if model.ble.messages.isEmpty {
+        if messageStore.messages.isEmpty {
           MoreInfoRow(title: "Events", value: "No BLE events yet", systemImage: "text.badge.plus", status: .pending)
         } else {
-          ForEach(model.ble.messages.prefix(8)) { message in
+          ForEach(messageStore.messages.prefix(8)) { message in
             MoreInfoRow(title: message.title, value: "\(message.source) | \(message.body)", systemImage: icon(for: message.level), status: status(for: message.level))
           }
         }
@@ -434,4 +435,3 @@ struct MoreHealthSyncView: View {
     store.healthAdapterStatus.contains("available") ? .ready : .unavailable
   }
 }
-

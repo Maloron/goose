@@ -48,7 +48,10 @@
 			D1000000000000000000001A /* OvernightRawNotificationSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000000000000000000001A /* OvernightRawNotificationSpool.swift */; };
 			D1000000000000000000001B /* HeartRateSeriesStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000000000000000000001B /* HeartRateSeriesStores.swift */; };
 			D10000000000000000000040 /* PacketUIStateAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000040 /* PacketUIStateAggregator.swift */; };
+			D10000000000000000000051 /* BLEUIStateAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000051 /* BLEUIStateAggregator.swift */; };
 			D10000000000000000000050 /* WhoopDataSignalPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000050 /* WhoopDataSignalPipeline.swift */; };
+			D10000000000000000000052 /* PacketMonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000052 /* PacketMonitorModel.swift */; };
+			D10000000000000000000053 /* GooseMessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000053 /* GooseMessageStore.swift */; };
 			D1000000000000000000001C /* ActivityPersistenceTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000000000000000000001C /* ActivityPersistenceTypes.swift */; };
 			D1000000000000000000001D /* HealthPacketCaptureTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000000000000000000001D /* HealthPacketCaptureTypes.swift */; };
 			D1000000000000000000001E /* WhoopEventSamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000000000000000000001E /* WhoopEventSamples.swift */; };
@@ -187,7 +190,10 @@
 			D2000000000000000000001A /* OvernightRawNotificationSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightRawNotificationSpool.swift; sourceTree = "<group>"; };
 			D2000000000000000000001B /* HeartRateSeriesStores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateSeriesStores.swift; sourceTree = "<group>"; };
 			D20000000000000000000040 /* PacketUIStateAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketUIStateAggregator.swift; sourceTree = "<group>"; };
+			D20000000000000000000051 /* BLEUIStateAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUIStateAggregator.swift; sourceTree = "<group>"; };
 			D20000000000000000000050 /* WhoopDataSignalPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopDataSignalPipeline.swift; sourceTree = "<group>"; };
+			D20000000000000000000052 /* PacketMonitorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketMonitorModel.swift; sourceTree = "<group>"; };
+			D20000000000000000000053 /* GooseMessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseMessageStore.swift; sourceTree = "<group>"; };
 			D2000000000000000000001C /* ActivityPersistenceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityPersistenceTypes.swift; sourceTree = "<group>"; };
 			D2000000000000000000001D /* HealthPacketCaptureTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthPacketCaptureTypes.swift; sourceTree = "<group>"; };
 			D2000000000000000000001E /* WhoopEventSamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopEventSamples.swift; sourceTree = "<group>"; };
@@ -366,7 +372,10 @@
 				D2000000000000000000001A /* OvernightRawNotificationSpool.swift */,
 				D2000000000000000000001B /* HeartRateSeriesStores.swift */,
 				D20000000000000000000040 /* PacketUIStateAggregator.swift */,
+				D20000000000000000000051 /* BLEUIStateAggregator.swift */,
 				D20000000000000000000050 /* WhoopDataSignalPipeline.swift */,
+				D20000000000000000000052 /* PacketMonitorModel.swift */,
+				D20000000000000000000053 /* GooseMessageStore.swift */,
 				D2000000000000000000001C /* ActivityPersistenceTypes.swift */,
 				D2000000000000000000001D /* HealthPacketCaptureTypes.swift */,
 				D2000000000000000000001E /* WhoopEventSamples.swift */,
@@ -668,7 +677,10 @@
 				D1000000000000000000001A /* OvernightRawNotificationSpool.swift in Sources */,
 				D1000000000000000000001B /* HeartRateSeriesStores.swift in Sources */,
 				D10000000000000000000040 /* PacketUIStateAggregator.swift in Sources */,
+				D10000000000000000000051 /* BLEUIStateAggregator.swift in Sources */,
 				D10000000000000000000050 /* WhoopDataSignalPipeline.swift in Sources */,
+				D10000000000000000000052 /* PacketMonitorModel.swift in Sources */,
+				D10000000000000000000053 /* GooseMessageStore.swift in Sources */,
 				D1000000000000000000001C /* ActivityPersistenceTypes.swift in Sources */,
 				D1000000000000000000001D /* HealthPacketCaptureTypes.swift in Sources */,
 				D1000000000000000000001E /* WhoopEventSamples.swift in Sources */,

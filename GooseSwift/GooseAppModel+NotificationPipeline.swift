@@ -374,7 +374,7 @@ extension GooseAppModel {
     )
     notificationParseQueue.async {
       let frameHexes = frames.map(\.hex)
-      let (parseResults, bridgeTiming) = parser.parseBatch(frameHexes: frameHexes, deviceType: deviceType)
+      let (parseResults, bridgeTiming, batchTiming) = parser.parseBatch(frameHexes: frameHexes, deviceType: deviceType)
       var mainResults: [ParsedNotificationFrameResult] = []
       var offMainDataSignalCount = 0
       var skippedDiagnosticFrameCount = 0
@@ -427,7 +427,8 @@ extension GooseAppModel {
         offMainDataSignalCount: offMainDataSignalCount,
         skippedDiagnosticFrameCount: skippedDiagnosticFrameCount,
         skippedParseErrorCount: skippedParseErrorCount,
-        bridgeTiming: bridgeTiming
+        bridgeTiming: bridgeTiming,
+        batchTiming: batchTiming
       )
       guard !mainResults.isEmpty else {
         self.handleParsedNotificationFramesWithoutMain(dispatch)
@@ -446,7 +447,8 @@ extension GooseAppModel {
         timing,
         frameCount: dispatch.totalFrameCount,
         queueDepth: queueDepth,
-        queueHighWatermark: highWatermark
+        queueHighWatermark: highWatermark,
+        detail: dispatch.batchTiming?.statusSummary
       )
     } else {
       publishPipelinePerformanceStatus(
@@ -475,7 +477,8 @@ extension GooseAppModel {
         timing,
         frameCount: dispatch.totalFrameCount,
         queueDepth: queueDepth,
-        queueHighWatermark: highWatermark
+        queueHighWatermark: highWatermark,
+        detail: dispatch.batchTiming?.statusSummary
       )
     } else {
       publishPipelinePerformanceStatus(

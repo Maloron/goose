@@ -17,6 +17,7 @@ private enum DevicePanel {
 
 private struct DeviceContentView: View {
   @EnvironmentObject private var model: GooseAppModel
+  @EnvironmentObject private var packetMonitor: PacketMonitorModel
   @ObservedObject var ble: GooseBLEClient
   @State private var selectedPanel: DevicePanel = .status
 
@@ -42,7 +43,7 @@ private struct DeviceContentView: View {
               isCharging: ble.batteryIsCharging == true
             )
           } else {
-            DeviceAdvancedPanel(model: model, ble: ble)
+            DeviceAdvancedPanel(model: model, packetMonitor: packetMonitor, ble: ble)
           }
         }
         .padding(.horizontal, 22)
@@ -293,7 +294,9 @@ private struct BatteryRail: View {
 }
 
 private struct DeviceAdvancedPanel: View {
+  @EnvironmentObject private var messageStore: GooseMessageStore
   @ObservedObject var model: GooseAppModel
+  @ObservedObject var packetMonitor: PacketMonitorModel
   @ObservedObject var ble: GooseBLEClient
 
   var body: some View {
@@ -315,12 +318,12 @@ private struct DeviceAdvancedPanel: View {
         DeviceFactRow(systemName: "bolt.horizontal", label: "High freq", value: ble.highFrequencyHistorySyncDisplaySummary)
         DeviceFactRow(systemName: "lungs", label: "RR packets", value: model.respiratoryPacketWatchStatus)
         DeviceFactRow(systemName: "cpu", label: "Rust", value: model.rustStatus)
-        DeviceFactRow(systemName: "waveform.path.ecg", label: "Last frame", value: model.lastParsedFrameSummary)
+        DeviceFactRow(systemName: "waveform.path.ecg", label: "Last frame", value: packetMonitor.lastParsedFrameSummary)
       }
 
       DeviceActionGrid(model: model, ble: ble)
       DiscoveredDeviceList(ble: ble)
-      EventLogPreview(messages: Array(ble.messages.prefix(5)))
+      EventLogPreview(messages: Array(messageStore.messages.prefix(5)))
     }
     .onAppear(perform: refreshClockIfPossible)
     .onChange(of: ble.connectionState) { _, _ in

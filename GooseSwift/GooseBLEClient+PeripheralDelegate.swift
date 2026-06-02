@@ -189,16 +189,7 @@ extension GooseBLEClient: CBPeripheralDelegate {
       return
     }
     lastNotificationSyncPublishedAt = capturedAt
-    DispatchQueue.main.async { [weak self] in
-      guard let self else {
-        return
-      }
-      if let lastSyncAt = self.lastSyncAt,
-         lastSyncAt >= capturedAt {
-        return
-      }
-      self.lastSyncAt = capturedAt
-    }
+    bleUIStateAggregator.publishLastSyncAt(capturedAt)
   }
 
   func notificationEvent(
@@ -281,7 +272,7 @@ extension GooseBLEClient: CBPeripheralDelegate {
     handleSensorStreamValue(value, characteristic: characteristic)
     handleClockValue(value, characteristic: characteristic)
 
-    lastSyncAt = event.capturedAt
+    bleUIStateAggregator.publishLastSyncAt(event.capturedAt)
     record(
       level: .debug,
       source: "ble",

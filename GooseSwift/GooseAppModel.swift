@@ -7,26 +7,14 @@ final class GooseAppModel: ObservableObject {
   @Published var onboardingComplete = false
   @Published var rustStatus = "Rust bridge not checked"
   @Published var helloSummary = "Client hello not prepared"
-  @Published var lastParsedFrameSummary = "No notification frames parsed"
   @Published var packetImportRevision = 0
   @Published var packetImportStatus = "No packet import"
   @Published var activityPersistenceStatus = "No activity stored"
   @Published var homeActivityTimelineItems: [ActivityTimelineItem] = []
   @Published var homeActivityTimelineStatus = "Activity timeline not loaded"
-  @Published var movementPacketStatus = "No movement packets"
   @Published var activityDetectionStatus = "Watching for movement packets"
   @Published var movementPacketValidationStatus = "Not run"
   @Published var movementPacketValidationIsRunning = false
-  @Published var latestWhoopEventStatus = "No WHOOP events"
-  @Published var latestSkinTemperatureCandidateStatus = "No skin temperature events"
-  @Published var latestWhoopDataPacketStatus = "No WHOOP data packets"
-  @Published var latestHistoryTemperatureCandidateStatus = "No history temperature packets"
-  @Published var latestRespiratoryRateCandidateStatus = "No respiratory rate candidates"
-  @Published var latestPulseInformationPacketStatus = "No pulse information packets"
-  @Published var latestOpticalPacketStatus = "No optical packets"
-  @Published var latestRawResearchPacketStatus = "No raw/research packets"
-  @Published var latestRealtimeStatusPacketStatus = "No realtime status packets"
-  @Published var performancePipelineStatus = "No pipeline samples"
   @Published var heartRateHourlyRanges: [HeartRateHourlyRange] = []
   @Published var heartRateStorageStatus = "No HR samples stored"
   @Published var healthPacketCaptureSessionID: String?
@@ -38,8 +26,6 @@ final class GooseAppModel: ObservableObject {
   @Published var healthPacketCaptureFamilyRows: [HealthPacketCaptureFamily] = []
   @Published var respiratoryPacketWatchActive = false
   @Published var respiratoryPacketWatchStatus = "Not watching K18 respiratory history"
-  @Published var liveDeviceDataSummary = "No live WHOOP data points"
-  @Published var recentDeviceSignalPoints: [DeviceSignalPoint] = []
   @Published var overnightGuardActive = false
   @Published var overnightGuardStatus = "Not started"
   @Published var overnightGuardReadinessStatus = "pending"
@@ -67,6 +53,7 @@ final class GooseAppModel: ObservableObject {
   @Published var overnightGuardCanExportLastSession = false
 
   let ble: GooseBLEClient
+  let packetMonitor = PacketMonitorModel()
   let activitySession = ActivitySessionModel()
   let activityLocationTracker = ActivityLocationTracker()
   let rust = GooseRustBridge()
@@ -141,6 +128,20 @@ final class GooseAppModel: ObservableObject {
   var autoStartRespiratoryPacketWatchAttempt = 0
   var passiveActivityCaptureWorkItem: DispatchWorkItem?
   var healthPacketCaptureFamilyRowsByID: [String: HealthPacketCaptureFamily] = [:]
+  var lastParsedFrameSummary: String { packetMonitor.lastParsedFrameSummary }
+  var movementPacketStatus: String { packetMonitor.movementPacketStatus }
+  var latestWhoopEventStatus: String { packetMonitor.latestWhoopEventStatus }
+  var latestSkinTemperatureCandidateStatus: String { packetMonitor.latestSkinTemperatureCandidateStatus }
+  var latestWhoopDataPacketStatus: String { packetMonitor.latestWhoopDataPacketStatus }
+  var latestHistoryTemperatureCandidateStatus: String { packetMonitor.latestHistoryTemperatureCandidateStatus }
+  var latestRespiratoryRateCandidateStatus: String { packetMonitor.latestRespiratoryRateCandidateStatus }
+  var latestPulseInformationPacketStatus: String { packetMonitor.latestPulseInformationPacketStatus }
+  var latestOpticalPacketStatus: String { packetMonitor.latestOpticalPacketStatus }
+  var latestRawResearchPacketStatus: String { packetMonitor.latestRawResearchPacketStatus }
+  var latestRealtimeStatusPacketStatus: String { packetMonitor.latestRealtimeStatusPacketStatus }
+  var performancePipelineStatus: String { packetMonitor.performancePipelineStatus }
+  var liveDeviceDataSummary: String { packetMonitor.liveDeviceDataSummary }
+  var recentDeviceSignalPoints: [DeviceSignalPoint] { packetMonitor.recentDeviceSignalPoints }
   var pendingHealthPacketCaptureLastPacketSummary: String?
   var pendingPacketImportStatus: String?
   var lastPacketImportRevisionPublishedAt = Date.distantPast

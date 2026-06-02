@@ -8,7 +8,6 @@ final class GooseBLEClient: NSObject, ObservableObject {
   @Published var connectionState = "disconnected"
   @Published var isScanning = false
   @Published var discoveredDevices: [GooseDiscoveredDevice] = []
-  @Published var messages: [GooseMessage] = []
   @Published var liveHeartRateBPM: Int?
   @Published var liveHeartRateSource = "waiting"
   @Published var liveHeartRateUpdatedAt: Date?
@@ -85,13 +84,17 @@ final class GooseBLEClient: NSObject, ObservableObject {
   let coreBluetoothQueue = DispatchQueue(label: "com.goose.swift.corebluetooth", qos: .utility)
   let realtimeVitalsQueue = DispatchQueue(label: "com.goose.swift.realtime-vitals", qos: .userInitiated)
   let diagnosticLogQueue = DispatchQueue(label: "com.goose.swift.diagnostic-log", qos: .utility)
+  let bleUIStateAggregator = BLEUIStateAggregator(publishInterval: GooseBLEClient.bleUIStatePublishInterval)
+  let messageStore = GooseMessageStore(
+    maximumMessages: GooseBLEClient.maximumDisplayedMessages,
+    flushInterval: GooseBLEClient.displayedMessageFlushInterval
+  )
   let notificationContextLock = NSLock()
   var notificationContextActiveDeviceName = "WHOOP"
   var notificationContextConnectionState = "disconnected"
-  var pendingDisplayedMessages: [GooseMessage] = []
-  var displayedMessageFlushWorkItem: DispatchWorkItem?
   static let displayedMessageFlushInterval: TimeInterval = 0.5
   static let maximumDisplayedMessages = 300
+  static let bleUIStatePublishInterval: TimeInterval = 0.2
   static let diagnosticLogProtection: FileProtectionType = .completeUntilFirstUserAuthentication
   static let diagnosticLogSetupWarningLock = NSLock()
   static var diagnosticLogSetupWarnings: [String] = []
@@ -223,6 +226,9 @@ final class GooseBLEClient: NSObject, ObservableObject {
   var peripherals: [UUID: CBPeripheral] = [:]
   var whoopCandidateIDs = Set<UUID>()
   var activePeripheral: CBPeripheral?
+  var messages: [GooseMessage] {
+    messageStore.messages
+  }
   var commandCharacteristic: CBCharacteristic?
   var debugMenuCharacteristic: CBCharacteristic?
   var batteryLevelCharacteristic: CBCharacteristic?
@@ -278,6 +284,11 @@ final class GooseBLEClient: NSObject, ObservableObject {
   var historyCompleteReceived = false
   var historyStartReceived = false
   var historicalDataResultAckEnabled = true
+  var lastHistoricalPacketCountPublishedAt = Date.distantPast
+  var lastHistoricalSyncProgressCallbackAt = Date.distantPast
+  var lastHistoricalSyncProgressCallbackStatus = ""
+  var lastHistoricalSyncProgressCallbackDetail = ""
+  var coalescedHistoricalSyncProgressCallbackCount = 0
   let requestHistoricalRangeBeforeTransfer = true
   let historicalCommandResponseTimeout: TimeInterval = 7
   let historicalPendingResponseGrace: TimeInterval = 25
@@ -336,6 +347,8 @@ final class GooseBLEClient: NSObject, ObservableObject {
   static let hrvChunkMaxAge: TimeInterval = 60
   static let hrvRMSSDAverageWindowSize = 12
   static let hrvEstimatePublishInterval: TimeInterval = 60
+  static let historicalPacketCountPublishInterval: TimeInterval = 1
+  static let historicalProgressCallbackInterval: TimeInterval = 1
   static let strapClockAutoSyncThresholdSeconds: TimeInterval = 5
   static let diagnosticLogFormatter: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
@@ -930,6 +943,11 @@ final class GooseBLEClient: NSObject, ObservableObject {
 
   init(startCentral: Bool = true) {
     super.init()
+    bleUIStateAggregator.onSnapshot = { [weak self] snapshot in
+      DispatchQueue.main.async {
+        self?.applyBLEUIStateSnapshot(snapshot)
+      }
+    }
     loadRememberedDevice()
     loadPersistedBatterySample()
     loadPersistedRestingHeartRateEstimate()

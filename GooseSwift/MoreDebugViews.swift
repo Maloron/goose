@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MoreDebugView: View {
   @EnvironmentObject private var model: GooseAppModel
+  @EnvironmentObject private var packetMonitor: PacketMonitorModel
   @ObservedObject var store: MoreDataStore
   @AppStorage(OnboardingStorage.onboardingComplete) private var onboardingComplete = false
   @AppStorage(OnboardingStorage.onboardingRedoRequested) private var onboardingRedoRequested = false
@@ -65,9 +66,9 @@ struct MoreDebugView: View {
         )
         MoreInfoRow(
           title: "Live Data",
-          value: model.liveDeviceDataSummary,
+          value: packetMonitor.liveDeviceDataSummary,
           systemImage: "dot.radiowaves.left.and.right",
-          status: model.recentDeviceSignalPoints.isEmpty ? .pending : .ready
+          status: packetMonitor.recentDeviceSignalPoints.isEmpty ? .pending : .ready
         )
         MoreInfoRow(
           title: "Historical",
@@ -155,9 +156,9 @@ struct MoreDebugView: View {
         )
         MoreInfoRow(
           title: "Last Packet",
-          value: model.movementPacketStatus,
+          value: packetMonitor.movementPacketStatus,
           systemImage: "waveform.path.ecg",
-          status: model.movementPacketStatus == "No movement packets" ? .pending : .ready
+          status: packetMonitor.movementPacketStatus == "No movement packets" ? .pending : .ready
         )
         MoreInfoRow(
           title: "Detector",
@@ -179,21 +180,21 @@ struct MoreDebugView: View {
       Section("WHOOP Event Signals") {
         MoreInfoRow(
           title: "Latest Event",
-          value: model.latestWhoopEventStatus,
+          value: packetMonitor.latestWhoopEventStatus,
           systemImage: "waveform.path",
-          status: model.latestWhoopEventStatus == "No WHOOP events" ? .pending : .ready
+          status: packetMonitor.latestWhoopEventStatus == "No WHOOP events" ? .pending : .ready
         )
         MoreInfoRow(
           title: "Skin Temp Candidate",
-          value: model.latestSkinTemperatureCandidateStatus,
+          value: packetMonitor.latestSkinTemperatureCandidateStatus,
           systemImage: "thermometer",
-          status: model.latestSkinTemperatureCandidateStatus == "No skin temperature events" ? .pending : .stale
+          status: packetMonitor.latestSkinTemperatureCandidateStatus == "No skin temperature events" ? .pending : .stale
         )
         MoreInfoRow(
           title: "Latest Data Packet",
-          value: model.latestWhoopDataPacketStatus,
+          value: packetMonitor.latestWhoopDataPacketStatus,
           systemImage: "waveform.path.ecg.rectangle",
-          status: model.latestWhoopDataPacketStatus == "No WHOOP data packets" ? .pending : .ready
+          status: packetMonitor.latestWhoopDataPacketStatus == "No WHOOP data packets" ? .pending : .ready
         )
         MoreInfoRow(
           title: "Capture",
@@ -209,42 +210,42 @@ struct MoreDebugView: View {
         )
         MoreInfoRow(
           title: "History Temp",
-          value: model.latestHistoryTemperatureCandidateStatus,
+          value: packetMonitor.latestHistoryTemperatureCandidateStatus,
           systemImage: "thermometer.medium",
-          status: model.latestHistoryTemperatureCandidateStatus == "No history temperature packets" ? .pending : .stale
+          status: packetMonitor.latestHistoryTemperatureCandidateStatus == "No history temperature packets" ? .pending : .stale
         )
         MoreInfoRow(
           title: "History RR",
-          value: model.latestRespiratoryRateCandidateStatus,
+          value: packetMonitor.latestRespiratoryRateCandidateStatus,
           systemImage: "lungs",
-          status: model.latestRespiratoryRateCandidateStatus == "No respiratory rate candidates" ? .pending : .stale
+          status: packetMonitor.latestRespiratoryRateCandidateStatus == "No respiratory rate candidates" ? .pending : .stale
         )
         MoreInfoRow(
           title: "Pulse Info",
-          value: model.latestPulseInformationPacketStatus,
+          value: packetMonitor.latestPulseInformationPacketStatus,
           systemImage: "lungs",
-          status: model.latestPulseInformationPacketStatus == "No pulse information packets" ? .pending : .stale
+          status: packetMonitor.latestPulseInformationPacketStatus == "No pulse information packets" ? .pending : .stale
         )
         MoreInfoRow(
           title: "Optical",
-          value: model.latestOpticalPacketStatus,
+          value: packetMonitor.latestOpticalPacketStatus,
           systemImage: "waveform",
-          status: model.latestOpticalPacketStatus == "No optical packets" ? .pending : .stale
+          status: packetMonitor.latestOpticalPacketStatus == "No optical packets" ? .pending : .stale
         )
         MoreInfoRow(
           title: "Raw/Research K20",
-          value: model.latestRawResearchPacketStatus,
+          value: packetMonitor.latestRawResearchPacketStatus,
           systemImage: "waveform.path.ecg",
-          status: model.latestRawResearchPacketStatus == "No raw/research packets" ? .pending : .ready
+          status: packetMonitor.latestRawResearchPacketStatus == "No raw/research packets" ? .pending : .ready
         )
         MoreInfoRow(
           title: "Realtime Status K2",
-          value: model.latestRealtimeStatusPacketStatus,
+          value: packetMonitor.latestRealtimeStatusPacketStatus,
           systemImage: "dot.radiowaves.left.and.right",
-          status: model.latestRealtimeStatusPacketStatus == "No realtime status packets" ? .pending : .ready
+          status: packetMonitor.latestRealtimeStatusPacketStatus == "No realtime status packets" ? .pending : .ready
         )
-        if !model.recentDeviceSignalPoints.isEmpty {
-          ForEach(model.recentDeviceSignalPoints.prefix(8)) { point in
+        if !packetMonitor.recentDeviceSignalPoints.isEmpty {
+          ForEach(packetMonitor.recentDeviceSignalPoints.prefix(8)) { point in
             MoreInfoRow(
               title: "\(point.family) | \(point.value)",
               value: "\(point.capturedAt.formatted(date: .omitted, time: .standard)) | \(point.detail)",
@@ -449,7 +450,7 @@ struct MoreDebugView: View {
     if model.activityDetectionStatus.contains("Candidate") || model.activityDetectionStatus.contains("Movement") {
       return .ready
     }
-    return model.movementPacketStatus == "No movement packets" ? .pending : .ready
+    return packetMonitor.movementPacketStatus == "No movement packets" ? .pending : .ready
   }
 
   private var healthPacketCaptureStatus: MoreStatusKind {
