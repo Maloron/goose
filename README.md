@@ -62,17 +62,10 @@ The current health metric UI draws heavily from [Bevel](https://www.bevel.health
 - macOS with Xcode installed.
 - iOS 26 SDK and an iOS 26 capable simulator/device.
 - Apple Developer signing configured for the `com.goose.swift` bundle identifier.
-- Rust and Cargo if rebuilding the Goose Rust core.
-- The sibling Rust core checkout expected by `Scripts/build_ios_rust.sh`:
+- Rust and Cargo for building the Goose Rust core from the committed `Rust/core` source.
+- iOS Rust targets installed with `rustup`; see the Rust Core Bridge section below.
 
-```text
-projects/
-  goose-swift/
-  goose/
-    core/
-```
-
-The app can use prebuilt Rust artifacts in `Rust/` when they are current. Set `GOOSE_SKIP_RUST_CORE_BUILD=1` to skip rebuilding the Rust core during Xcode builds.
+Built Rust `.a` archives are generated locally during Xcode builds and are not committed. Set `GOOSE_SKIP_RUST_CORE_BUILD=1` only when the matching local archive already exists for the active Xcode platform.
 
 ## Build
 
